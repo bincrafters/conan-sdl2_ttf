@@ -31,7 +31,7 @@ class DefaultNameConan(ConanFile):
 
     def test(self):
         out = StringIO()
-        self.run("cd bin && .%sexample && true" % (os.sep),  output=out)
+        self.run("cd bin && .%sexample || true" % (os.sep),  output=out)
         print("**********\n%s***********" % str(out.getvalue()))
         assert "No available video device" in str(out.getvalue()) or "Closing window" in str(out.getvalue())
         
