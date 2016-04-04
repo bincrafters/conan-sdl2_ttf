@@ -1,6 +1,7 @@
 from conans import ConanFile
 from conans import GCC, CMake
 import os
+from StringIO import StringIO
 
 ############### CONFIGURE THESE VALUES ##################
 default_user = "lasote"
@@ -29,4 +30,8 @@ class DefaultNameConan(ConanFile):
         self.copy(pattern="*.dylib", dst="bin", src="lib")
 
     def test(self):
-        self.run("cd bin && .%sexample" % (os.sep))
+        out = StringIO()
+        self.run("cd bin && .%sexample && true" % (os.sep),  output=out)
+        print("**********\n%s***********" % str(out.getvalue()))
+        assert "No available video device" in str(out.getvalue()) or "Closing window" in str(out.getvalue())
+        
