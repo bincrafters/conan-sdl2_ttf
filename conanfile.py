@@ -17,15 +17,6 @@ class SDL2TTfConan(ConanFile):
     url="http://github.com/lasote/conan-SDL2_ttf"
     requires = "SDL2/2.0.4@lasote/stable", "freetype/2.6.3@lasote/stable"
     license="MIT"
-    
-    def system_requirements(self):
-        if not self.has_gl_installed():
-            if self.settings.os == "Linux":
-                self.output.warn("GL is not installed in this machine! Conan will try to install it.")
-                self.run("sudo apt-get install -y freeglut3 freeglut3-dev libglew1.5-dev libglm-dev")
-                if not self.has_gl_installed():
-                    self.output.error("GL Installation doesn't work... install it manually and try again")
-                    exit(1)
 
     def config(self):
         del self.settings.compiler.libcxx 
@@ -49,7 +40,8 @@ class SDL2TTfConan(ConanFile):
             env_line = env.command_line.replace('CFLAGS="', 'CFLAGS="-fPIC ')
         else:
             env_line = env.command_line
-            
+        
+        print(self.deps_cpp_info)
         # env_line = env_line.replace('LIBS="', 'LIBS2="') # Rare error if LIBS is kept
         sdl2_config_path = os.path.join(self.deps_cpp_info["SDL2"].lib_paths[0], "sdl2-config")
         self.run("cd %s" % self.folder)
@@ -97,9 +89,10 @@ class SDL2TTfConan(ConanFile):
         replace_in_file("%s/Makefile" % self.folder, old_str, new_str)
         
         
+        self.output.warn(str(self.deps_cpp_info.libs))
+        
         self.run("cd %s && %s make" % (self.folder, env_line))
-
-
+        
     def package(self):
         """ Define your conan structure: headers, libs and data. After building your
             project, this method is called to create a defined structure:
@@ -118,82 +111,3 @@ class SDL2TTfConan(ConanFile):
     def package_info(self):  
                 
         self.cpp_info.libs = ["SDL2_ttf"]
-
-
-
-    def has_gl_installed(self):
-        if self.settings.os == "Linux":
-            return self.has_gl_installed_linux()
-        return True
-        
-    def has_gl_installed_linux(self):
-        test_program = '''#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glut.h>
-#include <stdlib.h>
-
-void quad()
-{
-glBegin(GL_QUADS);
-glVertex2f( 0.0f, 1.0f); // Top Left
-glVertex2f( 1.0f, 1.0f); // Top Right
-glVertex2f( 1.0f, 0.0f); // Bottom Right
-glVertex2f( 0.0f, 0.0f); // Bottom Left
-glEnd();
-}
-
-void draw()
-{
-// Make background colour black
-glClearColor( 0, 0, 0, 0 );
-glClear ( GL_COLOR_BUFFER_BIT );
-
-// Push the matrix stack - more on this later
-glPushMatrix();
-
-// Set drawing colour to blue
-glColor3f( 0, 0, 1 );
-
-// Move the shape to middle of the window
-// More on this later
-glTranslatef(-0.5, -0.5, 0.0);
-
-// Call our Quad Method
-quad();
-
-// Pop the Matrix
-glPopMatrix();
-
-// display it 
-glutSwapBuffers();
-}
-
-// Keyboard method to allow ESC key to quit
-void keyboard(unsigned char key,int x,int y)
-{
-if(key==27) exit(0);
-}
-
-int main(int argc, char **argv)
-{
-// Double Buffered RGB display 
-glutInitDisplayMode( GLUT_RGB | GLUT_DOUBLE);
-// Set window size
-glutInitWindowSize( 500,500 );
-
-glutDisplayFunc(draw);
-glutKeyboardFunc(keyboard);
-// Start the Main Loop
-glutMainLoop();
-}
-'''
-        try:
-            self.run('echo "%s" > /tmp/quad.c' % test_program)
-            self.run("cc /tmp/quad.c  -lglut -lGLU -lGL -lm")
-            self.output.info("GL DETECTED OK!")
-            return True
-        except:
-            return False 
-        
-        
-        
