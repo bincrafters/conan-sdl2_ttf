@@ -141,7 +141,7 @@ bool InitEverything()
 
 	SetupRenderer();
 
-	if ( !SetupTTF( "../OpenSans-Bold.ttf" ) )
+	if ( !SetupTTF( "../../../OpenSans-Bold.ttf" ) )
 		return false;
 
 	CreateTextTextures();
