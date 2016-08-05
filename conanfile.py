@@ -53,7 +53,9 @@ class SDL2TTfConan(ConanFile):
             old_str = "-install_name \$rpath/"
             new_str = "-install_name "
             replace_in_file("%s/configure" % self.folder, old_str, new_str)
-        
+        if self.settings.os == "Linux":
+            env_line = env_line.replace("-lbz2", "") # Configure fails because of double main declaration WTF
+
         freetype_location = self.deps_cpp_info["freetype"].lib_paths[0]       
         shared = "--enable-shared=yes --enable-static=no" if self.options.shared else "--enable-shared=no --enable-static=yes"
         configure_command = 'cd %s && %s SDL2_CONFIG=%s ./configure --with-freetype-exec-prefix="%s" %s' % (self.folder, env_line, sdl2_config_path, freetype_location, shared)
