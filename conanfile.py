@@ -20,6 +20,7 @@ class SDL2TTfConan(ConanFile):
 
     def config(self):
         del self.settings.compiler.libcxx 
+        self.options["SDL2"].shared = self.options.shared
 
     def source(self):
         zip_name = "%s.tar.gz" % self.folder
