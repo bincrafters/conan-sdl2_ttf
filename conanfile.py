@@ -11,7 +11,7 @@ class SDL2TTfConan(ConanFile):
     folder = "SDL2_ttf-%s" % version
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
-    default_options = '''shared=False
+    default_options = '''shared=True
     fPIC=True'''
     generators = "cmake"
     url="http://github.com/lasote/conan-SDL2_ttf"
