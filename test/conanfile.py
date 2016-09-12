@@ -33,5 +33,5 @@ class DefaultNameConan(ConanFile):
         out = StringIO()
         self.run("cd bin && .%sexample || true" % (os.sep),  output=out)
         print("**********\n%s***********" % str(out.getvalue()))
-        assert "No available video device" in str(out.getvalue()) or "Closing window" in str(out.getvalue())
+        assert "Couldn't find matching render driver" in str(out.getvalue()) or "No available video device" in str(out.getvalue()) or "Closing window" in str(out.getvalue())
         
