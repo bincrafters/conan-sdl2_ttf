@@ -51,6 +51,8 @@ int main( int argc, char* args[] )
 
         // Clean up font
         TTF_CloseFont( font );
+
+        return 0;
 }
 void RunGame()
 {
