@@ -1,7 +1,6 @@
-from conans import ConanFile, tools, MSBuild, AutoToolsBuildEnvironment, VisualStudioBuildEnvironment
+from conans import ConanFile, tools, MSBuild, AutoToolsBuildEnvironment
 import os
 import os.path
-import shutil
 
 class SDL2TtfConan(ConanFile):
     name = "sdl2_ttf"
