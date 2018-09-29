@@ -26,6 +26,10 @@ class SDL2TtfConan(ConanFile):
         if self.settings.os == "Windows":
             del self.options.fPIC
 
+    def configure(self):
+        if self.settings.compiler == "Visual Studio":
+            self.options["sdl2"].shared = True
+
     def requirements(self):
         if self.settings.compiler != "Visual Studio":
             self.requires("freetype/2.9.0@bincrafters/stable")
@@ -96,3 +100,4 @@ class SDL2TtfConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.includedirs.append(os.path.join("include", "SDL2"))
