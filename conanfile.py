@@ -5,19 +5,29 @@ import os.path
 class SDL2TtfConan(ConanFile):
     name = "sdl2_ttf"
     version = "2.0.14"
-    folder = "SDL2_ttf-%s" % version
+    description = "A TrueType font library for SDL2"
+    topics = ("conan", "sdl2", "sdl2_ttf", "sdl", "sdl_ttf", "ttf", "font")
+    url = "https://github.com/bincrafters/conan-sdl2_ttf"
+    homepage = "https://www.libsdl.org/projects/SDL_ttf/"
+    author = "Bincrafters <bincrafters@gmail.com>"
+    license = "ZLIB"
+    exports = "LICENSE.md"
     settings = "os", "arch", "compiler", "build_type"
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
     }
-    default_options = (
-        "shared=True",
-        "fPIC=True",
+    default_options = {
+        "shared": True,
+        "fPIC": True,
+    }
+
+    _source_subfolder = "SDL2_ttf-{}".format(version)
+
+    requires = (
+        "freetype/2.9.0@bincrafters/stable",
+        "sdl2/2.0.8@bincrafters/stable",
     )
-    url = "http://github.com/elizagamedev/conan-sdl2_ttf"
-    requires = "sdl2/2.0.8@bincrafters/stable"
-    license = "MIT"
 
     def config_options(self):
         del self.settings.compiler.libcxx
@@ -27,26 +37,35 @@ class SDL2TtfConan(ConanFile):
             del self.options.fPIC
 
     def configure(self):
-        if self.settings.compiler == "Visual Studio":
+        if self.settings.compiler == "Visual Studio" or self.options.shared:
             self.options["sdl2"].shared = True
 
-    def requirements(self):
-        if self.settings.compiler != "Visual Studio":
-            self.requires("freetype/2.9.0@bincrafters/stable")
-
     def source(self):
-        tools.get("https://www.libsdl.org/projects/SDL_ttf/release/{}.tar.gz".format(self.folder))
+        tools.get("https://www.libsdl.org/projects/SDL_ttf/release/{}.tar.gz".format(
+            self._source_subfolder))
         if self.settings.compiler == "Visual Studio":
-            visualc = os.path.join(self.folder, "VisualC")
-            tools.replace_in_file(os.path.join(visualc, "SDL_ttf.vcxproj"),
-                                  "<AdditionalDependencies>",
-                                  "<AdditionalDependencies>WinMM.lib;version.lib;Imm32.lib;")
-            tools.replace_in_file(os.path.join(visualc, "glfont", "glfont.vcxproj"),
-                                  "<AdditionalDependencies>",
-                                  "<AdditionalDependencies>WinMM.lib;version.lib;Imm32.lib;")
-            tools.replace_in_file(os.path.join(visualc, "showfont", "showfont.vcxproj"),
-                                  "<AdditionalDependencies>",
-                                  "<AdditionalDependencies>WinMM.lib;version.lib;Imm32.lib;")
+            visualc = os.path.join(self._source_subfolder, "VisualC")
+
+            projects = (
+                os.path.join(visualc, "SDL_ttf.vcxproj"),
+                os.path.join(visualc, "glfont", "glfont.vcxproj"),
+                os.path.join(visualc, "showfont", "showfont.vcxproj"),
+            )
+
+            # Patch out dependency on packaged freetype
+            tools.replace_in_file(projects[0], "external\\include;", "")
+            tools.replace_in_file(projects[0], "external\\lib\\x86;", "")
+            tools.replace_in_file(projects[0], "external\\lib\\x64;", "")
+            tools.replace_in_file(projects[0], "libfreetype-6.lib;", "")
+
+            # Patch in some missing libraries
+            for project in projects:
+                tools.replace_in_file(project,
+                                      "<AdditionalDependencies>",
+                                      "<AdditionalDependencies>WinMM.lib;version.lib;Imm32.lib;")
+                if self.settings.build_type == "Debug":
+                    tools.replace_in_file(project, "SDL2.lib", "SDL2d.lib", strict=False)
+                    tools.replace_in_file(project, "SDL2main.lib", "SDL2maind.lib", strict=False)
 
     def build(self):
         if self.settings.compiler == "Visual Studio":
@@ -56,7 +75,7 @@ class SDL2TtfConan(ConanFile):
 
     def build_with_vs(self):
         msbuild = MSBuild(self)
-        msbuild.build(os.path.join(self.folder, "VisualC", "SDL_ttf.sln"),
+        msbuild.build(os.path.join(self._source_subfolder, "VisualC", "SDL_ttf.sln"),
                       platforms={"x86": "Win32",
                                  "x86_64": "x64"},
                       toolset=self.settings.compiler.toolset)
@@ -66,7 +85,7 @@ class SDL2TtfConan(ConanFile):
         sharedargs = (['--enable-shared', '--disable-static']
                       if self.options.shared else
                       ['--enable-static', '--disable-shared'])
-        autotools.configure(configure_dir=self.folder, args=[
+        autotools.configure(configure_dir=self._source_subfolder, args=[
             "--with-freetype-exec-prefix=" + self.deps_cpp_info["freetype"].lib_paths[0]
         ] + sharedargs)
 
@@ -91,12 +110,13 @@ class SDL2TtfConan(ConanFile):
 
     def package(self):
         if self.settings.compiler == "Visual Studio":
-            self.copy(pattern="SDL_ttf.h", dst=os.path.join("include", "SDL2"), src=self.folder, keep_path=False)
+            self.copy(pattern="SDL_ttf.h",
+                      dst=os.path.join("include", "SDL2"),
+                      src=self._source_subfolder,
+                      keep_path=False)
             self.copy(pattern="*/SDL2_ttf.lib", dst="lib", keep_path=False)
             self.copy(pattern="*/SDL2_ttf.pdb", dst="lib", keep_path=False)
             self.copy(pattern="*/SDL2_ttf.dll", dst="bin", keep_path=False)
-            self.copy(pattern="*/libfreetype*.dll", dst="bin", keep_path=False)
-            self.copy(pattern="*/zlib*.dll", dst="bin", keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
