@@ -114,9 +114,10 @@ class SDL2TtfConan(ConanFile):
                       dst=os.path.join("include", "SDL2"),
                       src=self._source_subfolder,
                       keep_path=False)
-            self.copy(pattern="*/SDL2_ttf.lib", dst="lib", keep_path=False)
-            self.copy(pattern="*/SDL2_ttf.pdb", dst="lib", keep_path=False)
-            self.copy(pattern="*/SDL2_ttf.dll", dst="bin", keep_path=False)
+            self.copy(pattern="*{}SDL2_ttf.lib".format(os.sep), dst="lib", keep_path=False)
+            self.copy(pattern="*{}SDL2_ttf.pdb".format(os.sep), dst="lib", keep_path=False)
+            self.copy(pattern="*{}SDL2_ttf.dll".format(os.sep), dst="bin", keep_path=False)
+            self.copy(pattern="*{}COPYING.txt".format(os.sep), dst="licenses", keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
