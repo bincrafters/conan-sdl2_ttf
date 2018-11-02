@@ -89,6 +89,11 @@ class SDL2TtfConan(ConanFile):
             "--with-freetype-exec-prefix=" + self.deps_cpp_info["freetype"].lib_paths[0]
         ] + sharedargs)
 
+        # Don't compile the two test programs
+        old_str = '\nnoinst_PROGRAMS = '
+        new_str = '\n# Removed by conan: noinst_PROGRAMS = '
+        tools.replace_in_file("Makefile", old_str, new_str)
+
         old_str = '\nLIBS = '
         new_str = '\n# Removed by conan: LIBS = '
         tools.replace_in_file("Makefile", old_str, new_str)
