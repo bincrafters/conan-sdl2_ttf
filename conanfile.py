@@ -18,8 +18,8 @@ class SDL2TtfConan(ConanFile):
         "fPIC": [True, False],
     }
     default_options = {
-        "shared": True,
-        "fPIC": True,
+        "shared": False,
+        "fPIC": False,
     }
 
     _source_subfolder = "SDL2_ttf-{}".format(version)
@@ -35,10 +35,6 @@ class SDL2TtfConan(ConanFile):
             del self.options.shared
         if self.settings.os == "Windows":
             del self.options.fPIC
-
-    def configure(self):
-        if self.settings.compiler == "Visual Studio" or self.options.shared:
-            self.options["sdl2"].shared = True
 
     def source(self):
         tools.get("https://www.libsdl.org/projects/SDL_ttf/release/{}.tar.gz".format(
@@ -71,7 +67,11 @@ class SDL2TtfConan(ConanFile):
         if self.settings.compiler == "Visual Studio":
             self.build_with_vs()
         else:
-            self.build_with_make()
+            if self.settings.os == "Macos":
+                with tools.environment_append({"DYLD_LIBRARY_PATH": self.deps_cpp_info["sdl2"].libdirs}):
+                    self.build_with_make()
+            else:
+                self.build_with_make()
 
     def build_with_vs(self):
         msbuild = MSBuild(self)
@@ -82,33 +82,26 @@ class SDL2TtfConan(ConanFile):
 
     def build_with_make(self):
         autotools = AutoToolsBuildEnvironment(self)
-        sharedargs = (['--enable-shared', '--disable-static']
-                      if self.options.shared else
-                      ['--enable-static', '--disable-shared'])
-        autotools.configure(configure_dir=self._source_subfolder, args=[
-            "--with-freetype-exec-prefix=" + self.deps_cpp_info["freetype"].lib_paths[0]
-        ] + sharedargs)
+        args = [
+            "--with-freetype-prefix=" + self.deps_cpp_info["freetype"].rootpath,
+            "--with-sdl-prefix=" + self.deps_cpp_info["sdl2"].rootpath,
+        ]
+        if self.options.shared:
+            args.extend(['--enable-shared', '--disable-static'])
+        else:
+            args.extend(['--enable-static', '--disable-shared'])
+        autotools.configure(configure_dir=self._source_subfolder, args=args)
 
-        # Don't compile the two test programs
-        old_str = '\nnoinst_PROGRAMS = '
-        new_str = '\n# Removed by conan: noinst_PROGRAMS = '
-        tools.replace_in_file("Makefile", old_str, new_str)
+        patches = (
+            ('\nnoinst_PROGRAMS = ', '\n# Removed by conan: noinst_PROGRAMS = '),
+            ('\nLIBS = ', '\n# Removed by conan: LIBS = '),
+            ('\nLIBTOOL = ', '\nLIBS = {}\nLIBTOOL = '.format(" ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs]))),
+            ('\nSDL_CFLAGS =', '\n# Removed by conan: SDL_CFLAGS ='),
+            ('\nSDL_LIBS =' , '\n# Removed by conan: SDL_LIBS ='),
+        )
 
-        old_str = '\nLIBS = '
-        new_str = '\n# Removed by conan: LIBS = '
-        tools.replace_in_file("Makefile", old_str, new_str)
-
-        old_str = '\nLIBTOOL = '
-        new_str = '\nLIBS = {}\nLIBTOOL = '.format(" ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])) # Trust conaaaan!
-        tools.replace_in_file("Makefile", old_str, new_str)
-
-        old_str = '\nSDL_CFLAGS ='
-        new_str = '\n# Removed by conan: SDL_CFLAGS ='
-        tools.replace_in_file("Makefile", old_str, new_str)
-
-        old_str = '\nSDL_LIBS ='
-        new_str = '\n# Removed by conan: SDL_LIBS ='
-        tools.replace_in_file("Makefile", old_str, new_str)
+        for old_str, new_str in patches:
+            tools.replace_in_file("Makefile", old_str, new_str)
 
         autotools.make()
         autotools.install()
