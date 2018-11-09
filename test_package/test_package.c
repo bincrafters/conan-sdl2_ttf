@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <SDL2/SDL_ttf.h>
 
-int main()
+int main(int argc, char **argv)
 {
     if (TTF_Init() == -1) {
         fprintf(stderr, "Failed to initialize TTF: %s\n", SDL_GetError());

@@ -8,7 +8,6 @@ class SDL2TtfTestConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.definitions["FONT_PATH"] = os.path.join(self.source_folder, "OpenSans-Bold.ttf")
         cmake.configure()
         cmake.build()
 

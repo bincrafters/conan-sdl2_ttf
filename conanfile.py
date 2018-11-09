@@ -59,9 +59,6 @@ class SDL2TtfConan(ConanFile):
                 tools.replace_in_file(project,
                                       "<AdditionalDependencies>",
                                       "<AdditionalDependencies>WinMM.lib;version.lib;Imm32.lib;")
-                if self.settings.build_type == "Debug":
-                    tools.replace_in_file(project, "SDL2.lib", "SDL2d.lib", strict=False)
-                    tools.replace_in_file(project, "SDL2main.lib", "SDL2maind.lib", strict=False)
 
     def build(self):
         if self.settings.compiler == "Visual Studio":
