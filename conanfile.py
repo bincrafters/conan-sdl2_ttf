@@ -62,9 +62,9 @@ class SDL2TtfConan(ConanFile):
         tools.replace_in_file(projects[0], "libfreetype-6.lib;", "")
 
         # Patch out custom build steps
-        text = open(projects[0], "r").read()
+        text = open(projects[0], "r", encoding="utf-8-sig").read()
         newtext, _ = re.subn(r"\s+<ItemGroup>\s+<CustomBuild.*</CustomBuild>\s+</ItemGroup>", "", text, flags=re.DOTALL)
-        open(projects[0], "w").write(newtext)
+        open(projects[0], "w", encoding="utf-8-sig").write(newtext)
 
         # Patch in some missing libraries
         for project in projects:
