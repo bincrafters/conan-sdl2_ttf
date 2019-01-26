@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 from conans import ConanFile, tools, MSBuild, AutoToolsBuildEnvironment
+import re
 
 
 class SDL2TtfConan(ConanFile):
@@ -28,6 +29,10 @@ class SDL2TtfConan(ConanFile):
         "sdl2/2.0.8@bincrafters/stable",
     )
     _source_subfolder = "source_subfolder"
+    _platform_mapping = {
+        "x86": "Win32",
+        "x86_64": "x64"
+    }
     _autotools = None
 
     def config_options(self):
@@ -43,18 +48,7 @@ class SDL2TtfConan(ConanFile):
         tools.get("{}/release/{}.tar.gz".format(self.homepage, extracted_folder), sha256=sha256)
         os.rename(extracted_folder, self._source_subfolder)
 
-    def build(self):
-        if self.settings.compiler == "Visual Studio":
-            self._build_with_vs()
-        else:
-            if self.settings.os == "Macos":
-                with tools.environment_append({"DYLD_LIBRARY_PATH": self.deps_cpp_info["sdl2"].libdirs}):
-                    self._build_with_make()
-            else:
-                self._build_with_make()
-
-    def _build_with_vs(self):
-        visualc = os.path.join(self._source_subfolder, "VisualC")
+        visualc = os.path.join(self.source_folder, self._source_subfolder, "VisualC")
         projects = (
             os.path.join(visualc, "SDL_ttf.vcxproj"),
             os.path.join(visualc, "glfont", "glfont.vcxproj"),
@@ -67,15 +61,33 @@ class SDL2TtfConan(ConanFile):
         tools.replace_in_file(projects[0], "external\\lib\\x64;", "")
         tools.replace_in_file(projects[0], "libfreetype-6.lib;", "")
 
+        # Patch out custom build steps
+        text = open(projects[0], "r").read()
+        newtext, _ = re.subn("""\s+<ItemGroup>\s+<CustomBuild.*</CustomBuild>\s+</ItemGroup>""", "", text, flags=re.DOTALL)
+        open(projects[0], "w").write(newtext)
+
         # Patch in some missing libraries
         for project in projects:
             tools.replace_in_file(project,
                                     "<AdditionalDependencies>",
                                     "<AdditionalDependencies>WinMM.lib;version.lib;Imm32.lib;")
+
+    def build(self):
+        if self.settings.compiler == "Visual Studio":
+            self._build_with_vs()
+        else:
+            if self.settings.os == "Macos":
+                with tools.environment_append({"DYLD_LIBRARY_PATH": self.deps_cpp_info["sdl2"].libdirs}):
+                    self._build_with_make()
+            else:
+                self._build_with_make()
+
+    def _build_with_vs(self):
         msbuild = MSBuild(self)
-        msbuild.build(os.path.join(self._source_subfolder, "VisualC", "SDL_ttf.sln"),
-                      platforms={"x86": "Win32",
-                                 "x86_64": "x64"},
+        msbuild.build_env.include_paths.extend(self.deps_cpp_info["freetype"].include_paths)
+        msbuild.build_env.lib_paths.extend(self.deps_cpp_info["freetype"].lib_paths)
+        msbuild.build(os.path.join(self.source_folder, self._source_subfolder, "VisualC", "SDL_ttf.sln"),
+                      platforms=self._platform_mapping,
                       toolset=self.settings.compiler.toolset)
 
     def _configure_autotools(self):
@@ -114,9 +126,11 @@ class SDL2TtfConan(ConanFile):
                       dst=os.path.join("include", "SDL2"),
                       src=self._source_subfolder,
                       keep_path=False)
-            self.copy(pattern="*.lib", dst="lib", src=self._source_subfolder, keep_path=False)
-            self.copy(pattern="*.pdb", dst="lib", src=self._source_subfolder, keep_path=False)
-            self.copy(pattern="*.dll", dst="bin", src=self._source_subfolder, keep_path=False)
+            src_folder = os.path.join(self._source_subfolder, "VisualC", self._platform_mapping[str(self.settings.arch)], str(self.settings.build_type))
+            self.copy(pattern="*.lib", dst="lib", src=src_folder, keep_path=False)
+            self.copy(pattern="*.pdb", dst="lib", src=src_folder, keep_path=False)
+            self.copy(pattern="*.exe", dst="bin", src=src_folder, keep_path=False)
+            self.copy(pattern="*.dll", dst="bin", src=src_folder, keep_path=False)
         else:
             autotools = self._configure_autotools()
             autotools.install()
