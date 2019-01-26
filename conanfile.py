@@ -127,7 +127,7 @@ class SDL2TtfConan(ConanFile):
                       src=self._source_subfolder,
                       keep_path=False)
             src_folder = os.path.join(self._source_subfolder, "VisualC", self._platform_mapping[str(self.settings.arch)], str(self.settings.build_type))
-            self.copy(pattern="*.lib", dst="lib", src=src_folder, keep_path=False)
+            self.copy(pattern="SDL2_ttf.lib", dst="lib", src=src_folder, keep_path=False)
             self.copy(pattern="*.pdb", dst="lib", src=src_folder, keep_path=False)
             self.copy(pattern="*.exe", dst="bin", src=src_folder, keep_path=False)
             self.copy(pattern="*.dll", dst="bin", src=src_folder, keep_path=False)
@@ -136,5 +136,5 @@ class SDL2TtfConan(ConanFile):
             autotools.install()
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = ["SDL2_ttf"]
         self.cpp_info.includedirs.append(os.path.join("include", "SDL2"))
