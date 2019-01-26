@@ -26,7 +26,7 @@ class SDL2TtfConan(ConanFile):
     }
     requires = (
         "freetype/2.9.0@bincrafters/stable",
-        "sdl2/2.0.8@bincrafters/stable",
+        "sdl2/2.0.9@bincrafters/stable",
     )
     _source_subfolder = "source_subfolder"
     _platform_mapping = {
