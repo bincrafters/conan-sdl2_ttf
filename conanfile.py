@@ -136,5 +136,5 @@ class SDL2TtfConan(ConanFile):
             autotools.install()
 
     def package_info(self):
-        self.cpp_info.libs = ["SDL2_ttf"]
+        self.cpp_info.libs = tools.collect_libs(self)
         self.cpp_info.includedirs.append(os.path.join("include", "SDL2"))
