@@ -63,7 +63,7 @@ class SDL2TtfConan(ConanFile):
 
         # Patch out custom build steps
         text = open(projects[0], "r").read()
-        newtext, _ = re.subn("""\s+<ItemGroup>\s+<CustomBuild.*</CustomBuild>\s+</ItemGroup>""", "", text, flags=re.DOTALL)
+        newtext, _ = re.subn(r"\s+<ItemGroup>\s+<CustomBuild.*</CustomBuild>\s+</ItemGroup>", "", text, flags=re.DOTALL)
         open(projects[0], "w").write(newtext)
 
         # Patch in some missing libraries
