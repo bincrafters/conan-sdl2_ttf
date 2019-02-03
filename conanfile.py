@@ -7,7 +7,7 @@ import re
 
 class SDL2TtfConan(ConanFile):
     name = "sdl2_ttf"
-    version = "2.0.14"
+    version = "2.0.15"
     description = "A TrueType font library for SDL2"
     topics = ("conan", "sdl2", "sdl2_ttf", "sdl", "sdl_ttf", "ttf", "font")
     url = "https://github.com/bincrafters/conan-sdl2_ttf"
@@ -25,7 +25,7 @@ class SDL2TtfConan(ConanFile):
         "fPIC": True,
     }
     requires = (
-        "freetype/2.9.0@bincrafters/stable",
+        "freetype/2.9.1@bincrafters/stable",
         "sdl2/2.0.9@bincrafters/stable",
     )
     _source_subfolder = "source_subfolder"
@@ -44,7 +44,7 @@ class SDL2TtfConan(ConanFile):
 
     def source(self):
         extracted_folder = "SDL2_ttf-{}".format(self.version)
-        sha256 = "34db5e20bcf64e7071fe9ae25acaa7d72bdc4f11ab3ce59acc768ab62fe39276"
+        sha256 = "a9eceb1ad88c1f1545cd7bd28e7cbc0b2c14191d40238f531a15b01b1b22cd33"
         tools.get("{}/release/{}.tar.gz".format(self.homepage, extracted_folder), sha256=sha256)
         os.rename(extracted_folder, self._source_subfolder)
 
