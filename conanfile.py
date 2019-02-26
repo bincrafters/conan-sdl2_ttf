@@ -92,7 +92,7 @@ class SDL2TtfConan(ConanFile):
 
     def _configure_autotools(self):
         if not self._autotools:
-            self._autotools = AutoToolsBuildEnvironment(self)
+            self._autotools = AutoToolsBuildEnvironment(self, win_bash=tools.OSInfo().is_windows)
             args = [
                 "--with-freetype-prefix=" + self.deps_cpp_info["freetype"].rootpath,
                 "--with-sdl-prefix=" + self.deps_cpp_info["sdl2"].rootpath,
