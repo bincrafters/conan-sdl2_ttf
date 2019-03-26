@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import os
 from conans import ConanFile, tools, CMake
-import re
 
 
 class SDL2TtfConan(ConanFile):
@@ -47,7 +47,7 @@ class SDL2TtfConan(ConanFile):
         os.rename(extracted_folder, self._source_subfolder)
 
     def _configure_cmake(self):
-        cmake = CMake(self)
+        cmake = CMake(self, set_cmake_flags=True)
         cmake.configure(build_folder=self._build_subfolder)
         return cmake
 
