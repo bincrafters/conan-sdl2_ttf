@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-from conans import ConanFile, tools, MSBuild, AutoToolsBuildEnvironment
+from conans import ConanFile, tools, CMake
 import re
 
 
@@ -29,11 +29,9 @@ class SDL2TtfConan(ConanFile):
         "sdl2/2.0.9@bincrafters/stable",
     )
     _source_subfolder = "source_subfolder"
-    _platform_mapping = {
-        "x86": "Win32",
-        "x86_64": "x64"
-    }
-    _autotools = None
+    _build_subfolder = "build_subfolder"
+    generators = "cmake"
+    exports_sources = ["CMakeLists.txt"]
 
     def config_options(self):
         del self.settings.compiler.libcxx
@@ -48,92 +46,27 @@ class SDL2TtfConan(ConanFile):
         tools.get("{}/release/{}.tar.gz".format(self.homepage, extracted_folder), sha256=sha256)
         os.rename(extracted_folder, self._source_subfolder)
 
-        visualc = os.path.join(self.source_folder, self._source_subfolder, "VisualC")
-        projects = (
-            os.path.join(visualc, "SDL_ttf.vcxproj"),
-            os.path.join(visualc, "glfont", "glfont.vcxproj"),
-            os.path.join(visualc, "showfont", "showfont.vcxproj"),
-        )
-
-        # Patch out dependency on packaged freetype
-        tools.replace_in_file(projects[0], "external\\include;", "")
-        tools.replace_in_file(projects[0], "external\\lib\\x86;", "")
-        tools.replace_in_file(projects[0], "external\\lib\\x64;", "")
-        tools.replace_in_file(projects[0], "libfreetype-6.lib;", "")
-
-        # Patch out custom build steps
-        text = open(projects[0], "r", encoding="utf-8-sig").read()
-        newtext, _ = re.subn(r"\s+<ItemGroup>\s+<CustomBuild.*</CustomBuild>\s+</ItemGroup>", "", text, flags=re.DOTALL)
-        open(projects[0], "w", encoding="utf-8-sig").write(newtext)
-
-        # Patch in some missing libraries
-        for project in projects:
-            tools.replace_in_file(project,
-                                    "<AdditionalDependencies>",
-                                    "<AdditionalDependencies>WinMM.lib;version.lib;Imm32.lib;")
+    def _configure_cmake(self):
+        cmake = CMake(self)
+        cmake.configure(build_folder=self._build_subfolder)
+        return cmake
 
     def build(self):
-        if self.settings.compiler == "Visual Studio":
-            self._build_with_vs()
-        else:
-            if self.settings.os == "Macos":
-                with tools.environment_append({"DYLD_LIBRARY_PATH": self.deps_cpp_info["sdl2"].libdirs}):
-                    self._build_with_make()
-            else:
-                self._build_with_make()
-
-    def _build_with_vs(self):
-        msbuild = MSBuild(self)
-        msbuild.build_env.include_paths.extend(self.deps_cpp_info["freetype"].include_paths)
-        msbuild.build_env.lib_paths.extend(self.deps_cpp_info["freetype"].lib_paths)
-        msbuild.build(os.path.join(self.source_folder, self._source_subfolder, "VisualC", "SDL_ttf.sln"),
-                      platforms=self._platform_mapping,
-                      toolset=self.settings.compiler.toolset)
-
-    def _configure_autotools(self):
-        if not self._autotools:
-            self._autotools = AutoToolsBuildEnvironment(self, win_bash=tools.OSInfo().is_windows)
-            args = [
-                "--with-freetype-prefix=" + self.deps_cpp_info["freetype"].rootpath,
-                "--with-sdl-prefix=" + self.deps_cpp_info["sdl2"].rootpath,
-            ]
-            if self.options.shared:
-                args.extend(['--enable-shared', '--disable-static'])
-            else:
-                args.extend(['--enable-static', '--disable-shared'])
-            self._autotools.configure(configure_dir=self._source_subfolder, args=args)
-
-            patches = (
-                ('\nnoinst_PROGRAMS = ', '\n# Removed by conan: noinst_PROGRAMS = '),
-                ('\nLIBS = ', '\n# Removed by conan: LIBS = '),
-                ('\nLIBTOOL = ', '\nLIBS = {}\nLIBTOOL = '.format(" ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs]))),
-                ('\nSDL_CFLAGS =', '\n# Removed by conan: SDL_CFLAGS ='),
-                ('\nSDL_LIBS =' , '\n# Removed by conan: SDL_LIBS ='),
-            )
-
-            for old_str, new_str in patches:
-                tools.replace_in_file("Makefile", old_str, new_str)
-        return self._autotools
-
-    def _build_with_make(self):
-        autotools = self._configure_autotools()
-        autotools.make()
+        if not self.options["sdl2"].shared:
+            tools.replace_in_file(os.path.join(self._source_subfolder, "CMakeLists.txt"), "SDL2::SDL2", "SDL2::SDL2-static")
+        tools.replace_in_file(os.path.join(self._source_subfolder, "CMakeLists.txt"), "${CMAKE_BINARY_DIR}", "${CMAKE_CURRENT_BINARY_DIR}")
+        # missing from distribution
+        tools.save(os.path.join(self._source_subfolder, "SDL2_ttfConfig.cmake"),
+                   """include(CMakeFindDependencyMacro)
+find_dependency(Freetype)
+include("${CMAKE_CURRENT_LIST_DIR}/SDL2_TTFTargets.cmake""")
+        cmake = self._configure_cmake()
+        cmake.build()
 
     def package(self):
         self.copy(pattern="COPYING.txt", dst="licenses", src=self._source_subfolder)
-        if self.settings.compiler == "Visual Studio":
-            self.copy(pattern="SDL_ttf.h",
-                      dst=os.path.join("include", "SDL2"),
-                      src=self._source_subfolder,
-                      keep_path=False)
-            src_folder = os.path.join(self._source_subfolder, "VisualC", self._platform_mapping[str(self.settings.arch)], str(self.settings.build_type))
-            self.copy(pattern="SDL2_ttf.lib", dst="lib", src=src_folder, keep_path=False)
-            self.copy(pattern="*.pdb", dst="lib", src=src_folder, keep_path=False)
-            self.copy(pattern="*.exe", dst="bin", src=src_folder, keep_path=False)
-            self.copy(pattern="*.dll", dst="bin", src=src_folder, keep_path=False)
-        else:
-            autotools = self._configure_autotools()
-            autotools.install()
+        cmake = self._configure_cmake()
+        cmake.install()
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
