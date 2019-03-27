@@ -55,7 +55,12 @@ class SDL2TtfConan(ConanFile):
         cmakelists = os.path.join(self._source_subfolder, "CMakeLists.txt")
         tools.replace_in_file(cmakelists,
         "target_link_libraries(SDL2_ttf SDL2::SDL2 Freetype::Freetype)",
-        "target_link_libraries(SDL2_ttf SDL2::SDL2 Freetype::Freetype ${CONAN_LIBS})")
+        """if(NOT TARGET Freetype::Freetype)
+add_library(Freetype::Freetype UNKNOWN IMPORTED)
+set_target_properties(Freetype::Freetype PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${FREETYPE_INCLUDE_DIRS}")
+set_target_properties(Freetype::Freetype PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C" IMPORTED_LOCATION "${FREETYPE_LIBRARY}")
+endif()
+target_link_libraries(SDL2_ttf SDL2::SDL2 Freetype::Freetype ${CONAN_LIBS})""")
         if not self.options["sdl2"].shared:
             tools.replace_in_file(cmakelists, "SDL2::SDL2", "SDL2::SDL2-static")
         tools.replace_in_file(cmakelists, "${CMAKE_BINARY_DIR}", "${CMAKE_CURRENT_BINARY_DIR}")
