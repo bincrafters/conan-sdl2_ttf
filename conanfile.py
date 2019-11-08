@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import os
 from conans import ConanFile, tools, CMake
 
@@ -12,7 +9,6 @@ class SDL2TtfConan(ConanFile):
     topics = ("conan", "sdl2", "sdl2_ttf", "sdl", "sdl_ttf", "ttf", "font")
     url = "https://github.com/bincrafters/conan-sdl2_ttf"
     homepage = "https://www.libsdl.org/projects/SDL_ttf"
-    author = "Bincrafters <bincrafters@gmail.com>"
     license = "ZLIB"
     exports = "LICENSE.md"
     settings = "os", "arch", "compiler", "build_type"
@@ -35,6 +31,7 @@ class SDL2TtfConan(ConanFile):
 
     def config_options(self):
         del self.settings.compiler.libcxx
+        del self.settings.compiler.cppstd
         if self.settings.compiler == "Visual Studio":
             del self.options.shared
         if self.settings.os == "Windows":
