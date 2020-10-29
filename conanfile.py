@@ -21,7 +21,7 @@ class SDL2TtfConan(ConanFile):
         "fPIC": True,
     }
     requires = (
-        "freetype/2.10.2",
+        "freetype/2.10.4",
         "sdl2/2.0.9@bincrafters/stable",
     )
     _source_subfolder = "source_subfolder"
