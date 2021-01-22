@@ -22,7 +22,7 @@ class SDL2TtfConan(ConanFile):
     }
     requires = (
         "freetype/2.10.4",
-        "sdl2/2.0.9@bincrafters/stable",
+        "sdl2/2.0.14@bincrafters/stable",
     )
     _source_subfolder = "source_subfolder"
     _build_subfolder = "build_subfolder"
